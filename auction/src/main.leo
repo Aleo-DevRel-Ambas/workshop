@@ -12,6 +12,37 @@ program auction.aleo {
         bidder: address,
         amount: u64,
         is_winner: bool,
+        auction_id: field
+    }
+
+    struct Auction {
+        runner: address,
+        title: field,
+        bids: u64,
+        complete: bool
+    }
+
+    mapping auctions: field => Auction;
+
+    async transition init_auction(title: field) -> Future {
+       return init_auction_finalize(self.caller, title);
+    }
+
+    async function init_auction_finalize(caller: address, title: field) {
+        let auction: Auction = Auction {
+            runner: caller,
+            title: title,
+            bids: 0u64,
+            complete: false
+        };
+
+        let id: field = BHP256::hash_to_field(title);
+
+        let existing: Auction = Mapping::get_or_use(auctions, id, auction);
+
+        if (existing == auction){
+            Mapping::set(auctions, id, auction);
+        }
     }
 
     // Returns a new bid.
@@ -20,7 +51,7 @@ program auction.aleo {
     // Requires that `bidder` matches the function caller.
     // The owner of the record is set to the entity responsible for running the auction (auction runner).
     // The address of the auction runner is aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh.
-    transition place_bid(bidder: address, amount: u64) -> Bid {
+    transition place_bid(bidder: address, amount: u64, auction_id: field) -> Bid {
         // Ensure the caller is the auction bidder.
         assert_eq(self.caller, bidder);
         // Return a new 'Bid' record for the auction bidder.
@@ -29,6 +60,7 @@ program auction.aleo {
             bidder: bidder,
             amount: amount,
             is_winner: false,
+            auction_id: auction_id
         };
     }
 
@@ -41,8 +73,8 @@ program auction.aleo {
     transition resolve(first: Bid, second: Bid) -> Bid {
         // Ensure the caller is the auctioneer.
         assert_eq(self.caller, aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh);
-        // Resolve the winner of the auction.
-        if (first.amount >= second.amount) {
+        // Resolve the winner of the auction and check that the auction_id is the same.
+        if (first.amount >= second.amount && first.auction_id == second.auction_id) {
             return first;
         } else {
             return second;
@@ -53,15 +85,30 @@ program auction.aleo {
     // - `bid` : The winning bid.
     // Requires that the function caller is the auction runner.
     // Assumes that the function is invoked only after all bids have been resolved.
-    transition finish(bid: Bid) -> Bid {
+    async transition finish(bid: Bid, auction_id: field) -> (Bid, Future) {
         // Ensure the caller is the auctioneer.
         assert_eq(self.caller, aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh);
+
         // Return 'is_winner' as 'true' in the winning 'Bid'.
-        return Bid {
+        return (Bid {
             owner: bid.bidder,
             bidder: bid.bidder,
             amount: bid.amount,
             is_winner: true,
+            auction_id: auction_id
+        }, finish_finalize(auction_id));
+    }
+
+    async function finish_finalize(auction_id: field) {
+        let auction: Auction = Mapping::get(auctions, auction_id);
+
+        let updated_auction: Auction = Auction {
+            runner: auction.runner,
+            title: auction.title,
+            bids: auction.bids,
+            complete: true
         };
+
+        Mapping::set(auctions, auction_id, updated_auction);
     }
 }

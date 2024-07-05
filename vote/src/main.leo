@@ -31,64 +31,64 @@ program vote.aleo {
     mapping disagree_votes: field => u64;
 
     // Propose a new proposal to vote on.
-    transition propose(public info: ProposalInfo) -> Proposal {
+    async transition propose(public info: ProposalInfo) -> (Proposal, Future) {
         // Authenticate proposer.
         assert_eq(self.caller, info.proposer);
 
         // Generate a new proposal id.
         let id: field = BHP256::hash_to_field(info.title);
 
-
-        // Return a new record for the proposal.
-        // Finalize the proposal id.
-        return Proposal {
+        let proposal: Proposal = Proposal {
             owner: self.caller,
             id,
             info,
-        } then finalize(id);
+        };
+
+        // Return a new record for the proposal.
+        // Finalize the proposal id.
+        return (proposal, propose_public_execution(id));
     }
+
     // Create a new proposal in the "tickets" mapping.
-    finalize propose(public id: field) {
+    async function propose_public_execution(id: field) {
         Mapping::set(tickets, id, 0u64);
     }
 
     // Create a new ticket to vote with.
-    transition new_ticket(
+    async transition new_ticket(
         public pid: field,
         public voter: address,
-    ) -> Ticket {
+    ) -> (Ticket, Future) {
 
-        // Finalize the proposal id for the ticket.
-        return Ticket {
+        let ticket: Ticket = Ticket {
             owner: voter,
             pid,
-        } then finalize(pid);
+        };
+        // Finalize the proposal id for the ticket.
+        return (ticket, new_ticket_pub_exec(pid));
     }
-    // Create a new ticket on a proposal in the "tickets" mapping.
-    finalize new_ticket(public pid: field) {
+
+    async function new_ticket_pub_exec(pid: field) {
         let current: u64 = Mapping::get_or_use(tickets, pid, 0u64);
         Mapping::set(tickets, pid, current + 1u64);
     }
 
-    // Vote privately to agree with a proposal.
-    transition agree(ticket: Ticket) {
+    // Vote privately
+    async transition vote(ticket: Ticket, agree: bool) -> Future {
         // Finalize this vote.
-        return then finalize(ticket.pid);
-    }
-    finalize agree(public pid: field) {
-        // Publicly increment the number of agree votes.
-        let current: u64 = Mapping::get_or_use(agree_votes, pid, 0u64);
-        Mapping::set(agree_votes, pid, current + 1u64);
+        return vote_public_execution(ticket.pid, agree);
     }
 
-    // Vote privately to disagree with a proposal.
-    transition disagree(ticket: Ticket) {
-        // Finalize this vote.
-        return then finalize(ticket.pid);
+    async function vote_public_execution(pid: field, agree: bool) {
+        if agree {
+            // Publicly increment the number of agree votes.
+            let current: u64 = Mapping::get_or_use(agree_votes, pid, 0u64);
+            Mapping::set(agree_votes, pid, current + 1u64);
+        } else {
+            // Publicly increment the number of disagree votes.
+            let current: u64 = Mapping::get_or_use(disagree_votes, pid, 0u64);
+            Mapping::set(disagree_votes, pid, current + 1u64);
+        }
     }
-    finalize disagree(pid: field) {
-        // Publicly increment the number of disagree votes.
-        let current: u64 = Mapping::get_or_use(disagree_votes, pid, 0u64);
-        Mapping::set(disagree_votes, pid, current + 1u64);
-    }
+
 }

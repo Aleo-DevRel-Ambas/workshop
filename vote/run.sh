@@ -109,18 +109,18 @@ echo "
 echo "
 Voter 1 can now vote privately on their ticket. Call the agree or disagree transition function, which takes the voter's ticket output as the input.
 
-leo run agree '{
+leo run vote '{
   owner: aleo1c45etea8czkyscyqawxs7auqjz08daaagp2zq4qjydkhxt997q9s77rsp2.private,
   pid: 2264670486490520844857553240576860973319410481267184439818180411609250173817field.private,
   _nonce: 1738483341280375163846743812193292672860569105378494043894154684192972730518group.public
-}'
+} true'
 "
 
-leo run agree "{
+leo run vote "{
   owner: aleo1c45etea8czkyscyqawxs7auqjz08daaagp2zq4qjydkhxt997q9s77rsp2.private,
   pid: 2264670486490520844857553240576860973319410481267184439818180411609250173817field.private,
   _nonce: 1738483341280375163846743812193292672860569105378494043894154684192972730518group.public
-}"
+}" true
 
 echo "
 ###############################################################################
@@ -171,20 +171,20 @@ echo "
 "
 
 echo "
-Voter 2 can now vote privately on their ticket. Call the agree or disagree transition function, which takes the voter's ticket output as the input.
+Voter 2 can now vote privately on their ticket. Call the vote function, which takes the voter's ticket output as the input.
 
-leo run disagree '{
+leo run vote '{
   owner: aleo1uc6jphye8y9gfqtezrz240ak963sdgugd7s96qpuw6k7jz9axs8q2qnhxc.private,
   pid: 2158670485494560943857353240576760973319410481267184429818180411607250143681field.private,
   _nonce: 6511154004161574129036815174288926693337549214513234790975047364416273541105group.public
-}'
+}, false'
 "
 
-leo run disagree "{
+leo run vote "{
   owner: aleo1uc6jphye8y9gfqtezrz240ak963sdgugd7s96qpuw6k7jz9axs8q2qnhxc.private,
   pid: 2158670485494560943857353240576760973319410481267184429818180411607250143681field.private,
   _nonce: 6511154004161574129036815174288926693337549214513234790975047364416273541105group.public
-}"
+}" false
 
 echo "
 ###############################################################################
