@@ -39,7 +39,27 @@ Let's start an auction!
 "
 
 echo "
-Let's take the role of the first bidder - we'll swap in the private key and address of the first bidder to .env.
+First we take the role of the runner who initializes the auction.
+
+We're going to run the transition function "init_auction" to start the auction.
+"
+
+# swaps in the private key of the auctioneer to .env
+echo "
+NETWORK=testnet3
+PRIVATE_KEY=APrivateKey1zkp5wvamYgK3WCAdpBQxZqQX8XnuN2u11Y6QprZTriVwZVc
+" > .env
+
+# Have the auctioneer initialize the auction.
+auction_output=$(leo run init_auction 2077160157502449938194577302446444field)
+
+# Extract the auction ID from the output.
+auction_id=$(echo "$auction_output" | grep -o '• [0-9]\{1,\}field' | awk '{print $2}')
+
+echo "$auction_id"
+
+echo "
+Now, let's take the role of the first bidder - we'll swap in the private key and address of the first bidder to .env.
 
 We're going to run the transition function "place_bid", slotting in the first bidder's public address and the amount that is being bid. The inputs are the user's public address and the amount being bid.
 
@@ -48,7 +68,7 @@ NETWORK=testnet3
 PRIVATE_KEY=APrivateKey1zkpG9Af9z5Ha4ejVyMCqVFXRKknSm8L1ELEwcc4htk9YhVK
 ' > .env
 
-leo run place_bid aleo1yzlta2q5h8t0fqe0v6dyh9mtv4aggd53fgzr068jvplqhvqsnvzq7pj2ke 10u64
+leo run place_bid aleo1yzlta2q5h8t0fqe0v6dyh9mtv4aggd53fgzr068jvplqhvqsnvzq7pj2ke 10u64 "$auction_id" aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh
 "
 
 # Swap in the private key of the first bidder to .env.
@@ -58,7 +78,7 @@ PRIVATE_KEY=APrivateKey1zkpG9Af9z5Ha4ejVyMCqVFXRKknSm8L1ELEwcc4htk9YhVK
 " > .env
 
 # Have the first bidder place a bid of 10.
-leo run place_bid aleo1yzlta2q5h8t0fqe0v6dyh9mtv4aggd53fgzr068jvplqhvqsnvzq7pj2ke 10u64
+leo run place_bid aleo1yzlta2q5h8t0fqe0v6dyh9mtv4aggd53fgzr068jvplqhvqsnvzq7pj2ke 10u64 "$auction_id" aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh
 
 echo "
 ###############################################################################
@@ -82,7 +102,7 @@ NETWORK=testnet3
 PRIVATE_KEY=APrivateKey1zkpAFshdsj2EqQzXh5zHceDapFWVCwR6wMCJFfkLYRKupug
 ' > .env
 
-leo run place_bid aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4 90u64
+leo run place_bid aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4 90u64 "$auction_id" aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh
 "
 
 # Swap in the private key of the second bidder to .env.
@@ -92,7 +112,7 @@ PRIVATE_KEY=APrivateKey1zkpAFshdsj2EqQzXh5zHceDapFWVCwR6wMCJFfkLYRKupug
 " > .env
 
 # Have the second bidder place a bid of 90.
-leo run place_bid aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4 90u64
+leo run place_bid aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4 90u64 "$auction_id" aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh
 
 echo "
 ###############################################################################
@@ -121,12 +141,14 @@ leo run resolve '{
         bidder: aleo1yzlta2q5h8t0fqe0v6dyh9mtv4aggd53fgzr068jvplqhvqsnvzq7pj2ke.private,
         amount: 10u64.private,
         is_winner: false.private,
+        auction_id: $auction_id.private,
         _nonce: 4668394794828730542675887906815309351994017139223602571716627453741502624516group.public
     }' '{
         owner: aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh.private,
         bidder: aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4.private,
         amount: 90u64.private,
         is_winner: false.private,
+        auction_id: $auction_id.private,
         _nonce: 5952811863753971450641238938606857357746712138665944763541786901326522216736group.public
     }'
 "
@@ -143,12 +165,14 @@ leo run resolve "{
         bidder: aleo1yzlta2q5h8t0fqe0v6dyh9mtv4aggd53fgzr068jvplqhvqsnvzq7pj2ke.private,
         amount: 10u64.private,
         is_winner: false.private,
+        auction_id: $auction_id.private,
         _nonce: 4668394794828730542675887906815309351994017139223602571716627453741502624516group.public
     }" "{
         owner: aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh.private,
         bidder: aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4.private,
         amount: 90u64.private,
         is_winner: false.private,
+        auction_id: $auction_id.private,
         _nonce: 5952811863753971450641238938606857357746712138665944763541786901326522216736group.public
     }"
 
@@ -174,8 +198,9 @@ leo run finish '{
         bidder: aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4.private,
         amount: 90u64.private,
         is_winner: false.private,
+        auction_id: $auction_id.private,
         _nonce: 5952811863753971450641238938606857357746712138665944763541786901326522216736group.public
-    }'
+    }' $auction_id aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh
 "
 
 # Have the auctioneer finish the auction.
@@ -184,8 +209,9 @@ leo run finish "{
         bidder: aleo1esqchvevwn7n5p84e735w4dtwt2hdtu4dpguwgwy94tsxm2p7qpqmlrta4.private,
         amount: 90u64.private,
         is_winner: false.private,
+        auction_id: $auction_id.private,
         _nonce: 5952811863753971450641238938606857357746712138665944763541786901326522216736group.public
-    }"
+    }" $auction_id aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh
 
 echo "
 ###############################################################################

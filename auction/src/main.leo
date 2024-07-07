@@ -18,25 +18,23 @@ program auction.aleo {
     struct Auction {
         runner: address,
         title: field,
-        bids: u64,
         complete: bool
     }
 
     mapping auctions: field => Auction;
 
-    async transition init_auction(title: field) -> Future {
-       return init_auction_finalize(self.caller, title);
+    async transition init_auction(title: field) -> (field, Future) {
+       let auction_id: field = BHP256::hash_to_field(title);
+
+       return (auction_id, init_auction_finalize(self.caller, title, auction_id));
     }
 
-    async function init_auction_finalize(caller: address, title: field) {
+    async function init_auction_finalize(caller: address, title: field, id: field) {
         let auction: Auction = Auction {
             runner: caller,
             title: title,
-            bids: 0u64,
             complete: false
         };
-
-        let id: field = BHP256::hash_to_field(title);
 
         let existing: Auction = Mapping::get_or_use(auctions, id, auction);
 
@@ -48,15 +46,17 @@ program auction.aleo {
     // Returns a new bid.
     // - `bidder` : The address of the account that placed the bid.
     // - `amount` : The amount of the bid.
+    // - `auction_id` : The id of the auction.
+    // - `runner` : The address of the account that is running the auction.
     // Requires that `bidder` matches the function caller.
     // The owner of the record is set to the entity responsible for running the auction (auction runner).
     // The address of the auction runner is aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh.
-    transition place_bid(bidder: address, amount: u64, auction_id: field) -> Bid {
+    transition place_bid(bidder: address, amount: u64, auction_id: field, runner: address) -> Bid {
         // Ensure the caller is the auction bidder.
         assert_eq(self.caller, bidder);
         // Return a new 'Bid' record for the auction bidder.
         return Bid {
-            owner: aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh,
+            owner: runner,
             bidder: bidder,
             amount: amount,
             is_winner: false,
@@ -85,9 +85,9 @@ program auction.aleo {
     // - `bid` : The winning bid.
     // Requires that the function caller is the auction runner.
     // Assumes that the function is invoked only after all bids have been resolved.
-    async transition finish(bid: Bid, auction_id: field) -> (Bid, Future) {
+    async transition finish(bid: Bid, auction_id: field, runner: address) -> (Bid, Future) {
         // Ensure the caller is the auctioneer.
-        assert_eq(self.caller, aleo1fxs9s0w97lmkwlcmgn0z3nuxufdee5yck9wqrs0umevp7qs0sg9q5xxxzh);
+        assert_eq(self.caller, runner);
 
         // Return 'is_winner' as 'true' in the winning 'Bid'.
         return (Bid {
@@ -105,7 +105,6 @@ program auction.aleo {
         let updated_auction: Auction = Auction {
             runner: auction.runner,
             title: auction.title,
-            bids: auction.bids,
             complete: true
         };
 
